@@ -1,0 +1,42 @@
+{
+    "name": "mrnewport/laravel-stow",
+    "description": "This unofficial laravel package allows for the addition of any model to an instancable \"Cart\", \"Quote\" or other \"Basket\".",
+    "type": "library",
+    "license": "MIT",
+    "autoload": {
+        "psr-4": {
+            "MrNewport\\LaravelStow\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "MrNewport\\LaravelStow\\Tests\\": "tests/"
+        }
+    },
+    "authors": [
+        {
+            "name": "MrNewport <Matthew Newport>",
+            "email": "admin@matthewnewport.com",
+            "homepage": "https://www.matthewnewport.com",
+            "role": "Developer"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "MrNewport\\LaravelStow\\Providers\\StowProvider"
+            ]
+        }
+    },
+    "minimum-stability": "dev",
+    "require-dev": {
+        "orchestra/testbench": "8.x-dev",
+        "phpstan/phpstan": "1.11.x-dev",
+        "laravel/pint": "dev-main"
+    },
+    "scripts": {
+        "post-autoload-dump": [
+            "@php ./vendor/bin/testbench package:discover --ansi"
+        ]
+    }
+}
