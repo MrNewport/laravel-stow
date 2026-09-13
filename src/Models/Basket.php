@@ -49,14 +49,17 @@ class Basket extends Model
         'deleting' => BasketDeletingEvent::class,
     ];
 
-    public function __construct(string $instance = 'basket')
+    public function __construct(array|string $attributes = [])
     {
-        $this->attributes['instance'] = $instance;
-        $this->attributes['slug'] = Str::random(40);
-        // change slug if exists
-        while (static::where('slug', $this->attributes['slug'])->count() > 0) {
-            $this->attributes['slug'] = Str::random(40);
-        }
+        parent::__construct(is_string($attributes) ? ['instance' => $attributes] : $attributes);
+        $this->attributes['instance'] ??= 'basket';
+    }
+
+    protected static function booted(): void
+    {
+        static::creating(function (Basket $basket) {
+            $basket->slug ??= (string) Str::uuid();
+        });
     }
 
     /*
@@ -79,9 +82,9 @@ class Basket extends Model
      * through the BasketItem pivot model
      * @return MorphMany polymorphic stowable items in the basket
      */
-    public function items(): MorphMany
+    public function items(): HasMany
     {
-        return $this->morphMany(BasketItem::class, 'stowable');
+        return $this->basketItems();
     }
 
 
@@ -98,13 +101,17 @@ class Basket extends Model
     public function add(Stowable $item, int $qty = 1, array $options = []): BasketItem
     {
         $this->verifyStowability($item::class);
+        if ($qty < 1 || $item->getKey() === null) {
+            throw new \InvalidArgumentException('A saved item and a positive quantity are required.');
+        }
 
         // Add basket to DB if not added
         if (!$this->getKey()) {
             $this->push();
         }
 
-        $basketItem = $this->basketItems()->whereMorphedTo('stowable', $item)->first();
+        $basketItem = $this->basketItems()->whereMorphedTo('stowable', $item)->get()
+            ->first(fn (BasketItem $line) => $line->options == $options);
 
         if ($basketItem && $basketItem->options == $options) {
             $basketItem->quantity += $qty;
@@ -113,7 +120,7 @@ class Basket extends Model
             $basketItem = new BasketItem();
             $basketItem->options = $options;
             $basketItem->quantity = $qty;
-            $basketItem->stowable_type = $item::class;
+            $basketItem->stowable_type = $item->getMorphClass();
             $basketItem->stowable_id = $item->getKey();
             $this->basketItems()->save($basketItem);
         }
@@ -132,9 +139,10 @@ class Basket extends Model
     public function change(int|BasketItem $basketItem, int $qty = 1, array $options = []): bool
     {
         /** @var BasketItem $basketItem */
-        $basketItem = $basketItem instanceof BasketItem
-            ? $basketItem
-            : BasketItem::findOrFail($basketItem);
+        if ($qty < 1) {
+            throw new \InvalidArgumentException('Quantity must be positive; use remove() to delete a line.');
+        }
+        $basketItem = $this->basketItems()->findOrFail($basketItem instanceof BasketItem ? $basketItem->getKey() : $basketItem);
         $basketItem->quantity = $qty;
         $basketItem->options = $options;
 
@@ -150,9 +158,7 @@ class Basket extends Model
      */
     public function remove(BasketItem|int $basketItem): bool
     {
-        return ($basketItem instanceof BasketItem)
-            ? $basketItem->delete()
-            : BasketItem::findOrFail($basketItem)->delete();
+        return $this->basketItems()->findOrFail($basketItem instanceof BasketItem ? $basketItem->getKey() : $basketItem)->delete();
     }
 
     /**
@@ -164,7 +170,7 @@ class Basket extends Model
      */
     public function merge(Basket $toMerge): void
     {
-        if (!$toMerge->id == $this->id) {
+        if (!$toMerge->is($this)) {
             if ($toMerge->basketItems()->count() > 0) {
                 $toMergeItems = $toMerge->items;
                 foreach ($toMergeItems as $item) {
@@ -184,7 +190,9 @@ class Basket extends Model
     {
         $new = new Basket($toInstance ?? $this->instance);
         $new->push();
-        $new->basketItems()->sync($this->basketItems);
+        foreach ($this->basketItems()->get() as $line) {
+            $new->basketItems()->save($line->replicate(['basket_id']));
+        }
 
         return $new;
     }
@@ -199,7 +207,7 @@ class Basket extends Model
      */
     public function verifyStowability(string $className): bool
     {
-        $config = config("basket.instances.$this->instance");
+        $config = config("stow.instances.$this->instance", config("basket.instances.$this->instance"));
         if (isset($config) && !in_array($className, $config)) {
             throw new UnstowableObjectException("$className not allowed in basket instance \"$this->instance\".");
         }

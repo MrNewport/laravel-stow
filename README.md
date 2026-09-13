@@ -1,3 +1,24 @@
+# Laravel Stow
+
+Current release: **2.0.0**. Supported installations: Laravel 12 (PHP 8.2+) and Laravel 13 (PHP 8.3+). CI verifies supported PHP/Laravel combinations. Earlier Laravel versions should remain on the previous major release.
+
+Laravel 12/13 runtime dependencies and current test harness. Fixed Eloquent construction/hydration and model events, inverse basket relations, morph aliases, variant matching, merge and clone behavior. Basket mutations scope item IDs to the current basket; quantities must be positive. Configuration now uses stow.instances with a legacy basket.instances fallback.
+
+```sh
+composer require mrnewport/laravel-stow:^2.0
+composer test # from the package checkout; tests use isolated fixtures
+```
+
+GitHub source and tags are published first. Until the release is indexed on Packagist, add this repository as a Composer VCS repository. Never install test dependencies in your production application's require section.
+
+Run `php artisan migrate` after upgrading to apply package migrations. Back up application data before normal production migrations.
+
+## Upgrade from 1.x
+
+`Stowable::basketItems()` now returns `MorphMany`; the bundled `StowMethods` trait implements it. `Basket::items()` returns the basket's `HasMany` lines. Replace handwritten inverse relationships accordingly. `new Basket('quote')` and `Basket::create(['instance' => 'quote'])` both work. `clone()` copies line data; `merge()` copies quantities into the destination and retains the source. Use `remove()` to remove a line instead of setting quantity to zero. Applications must still authorize access to the basket itself.
+
+## Existing API reference
+
 
 # Laravel Stow Package
 

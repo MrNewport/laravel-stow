@@ -2,15 +2,16 @@
 
 namespace MrNewport\LaravelStow\Traits;
 
-use Illuminate\Database\Eloquent\Relations\MorphTo;
+use Illuminate\Database\Eloquent\Relations\MorphMany;
+use MrNewport\LaravelStow\Models\BasketItem;
 
 trait StowMethods
 {
     /**
-     * @return MorphTo
+     * @return MorphMany
      */
-    public function basketItems(): MorphTo
+    public function basketItems(): MorphMany
     {
-        return $this->morphTo();
+        return $this->morphMany(BasketItem::class, 'stowable');
     }
 }

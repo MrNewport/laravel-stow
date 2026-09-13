@@ -14,3 +14,10 @@ yarn-error.log
 /.vscode
 .DS_Store
 .phpunit.cache/test-results
+
+/vendor/
+/composer.lock
+/.phpunit.cache/
+/.phpunit.result.cache
+/.env
+/.env.*
