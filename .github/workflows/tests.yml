@@ -45,7 +45,7 @@ jobs:
       - run: composer create-project laravel/laravel:^13.0 host --no-install --no-scripts --no-interaction
       - working-directory: host
         run: |
-          php -r '$p=json_decode(file_get_contents("composer.json"),true); unset($p["require-dev"]); $p["repositories"]=[["type"=>"path","url"=>"../package","options"=>["symlink"=>false,"versions"=>["mrnewport/laravel-stow"=>"2.0.0"]]]]; $p["require"]["mrnewport/laravel-stow"]="^2.0"; file_put_contents("composer.json",json_encode($p,JSON_PRETTY_PRINT));'
+          php -r '$p=json_decode(file_get_contents("composer.json"),true); unset($p["require-dev"]); $p["repositories"]=[["type"=>"path","url"=>"../package","options"=>["symlink"=>false,"versions"=>["mrnewport/laravel-stow"=>"2.1.0"]]]]; $p["require"]["mrnewport/laravel-stow"]="^2.1"; file_put_contents("composer.json",json_encode($p,JSON_PRETTY_PRINT));'
           cp .env.example .env
           touch database/database.sqlite
           composer update --no-dev --no-interaction --prefer-dist --no-progress
@@ -53,8 +53,12 @@ jobs:
           php artisan package:discover
           php artisan config:cache
           php artisan route:cache
-          php artisan migrate --force
-          php artisan migrate:rollback --force
+          for key_type in int uuid ulid; do
+            STOW_KEY_TYPE="$key_type" php -r 'file_put_contents("config/stow.php", "<?php return [\"morph_key_type\" => ".var_export(getenv("STOW_KEY_TYPE"), true)."];\n");'
+            php artisan config:cache
+            php artisan migrate --force
+            php artisan migrate:rollback --force
+          done
           php -r 'require "vendor/autoload.php"; if(class_exists("Pest\\TestSuite") || class_exists("PHPUnit\\Framework\\TestCase")) exit(1);'
   mysql:
     runs-on: ubuntu-24.04
@@ -81,3 +85,12 @@ jobs:
         env:
           MYSQL_TEST_DATABASE: package_test
           MYSQL_TEST_PASSWORD: package-test-only
+
+  browser:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020
+        with:
+          node-version: '22'
+      - run: node --test tests/Browser/*.test.mjs

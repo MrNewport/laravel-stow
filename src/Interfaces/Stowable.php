@@ -8,5 +8,6 @@ interface Stowable
 {
     public function basketItems(): MorphMany;
 
-    public function getKey(): mixed;
+    /** @return mixed */
+    public function getKey();
 }

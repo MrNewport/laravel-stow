@@ -1,6 +1,9 @@
 <?php
 
 return [
+    // Set before the first migration. Existing tables are never converted.
+    'morph_key_type' => 'int', // int, uuid, or ulid
+
     /*
         * This is where you restrict certain instances to holding only specified Models.
         *
