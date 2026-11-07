@@ -2,6 +2,8 @@
 
 Eloquent and browser baskets for saved membership, integer quantities and options. Native database and browser storage backends are independent; the host owns ownership, concurrency, pricing and checkout.
 
+**[Interactive workshop](https://matthewnewport.com/packages/laravel-stow/lab)** — Try guided examples in your browser.
+
 ```sh
 composer require mrnewport/laravel-stow:^2.1
 ```
